@@ -32,6 +32,9 @@ class CreateTaskService
 
     public function task_exist(string $task_id): bool
     {
+        // ждем чтобы бот точно создал запись о задаче в БД
+        sleep(4);
+
         $task = BitrixTask::where('task_id', $task_id)->first();
         return !is_null($task);
     }
