@@ -24,7 +24,7 @@ class CreateTaskController
         // Проверяем, что задачу создал именно наш бот
         $exist = $ct_service->task_exist($task_id);
         if (!$exist) {
-            Log::info('Эта задача бота создана не нашим ботом', ['task_id' => $task_id]);
+            Log::info('Эта задача создана не нашим ботом', ['task_id' => $task_id]);
             return false;
         }
 
