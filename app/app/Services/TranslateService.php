@@ -53,7 +53,7 @@ class TranslateService
 
     public static function get_lang(string $chat_id)
     {
-        $lang = ChatSetting::find($chat_id)?->first()?->lang ?? 'ru';
+        $lang = ChatSetting::where('chat_id', $chat_id)->first()?->lang ?? 'ru';
         return new TranslateService($lang);
     }
 
