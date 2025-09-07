@@ -5,12 +5,10 @@ namespace App\Services;
 use App\Models\ChatSetting;
 use RuntimeException;
 
-class LanguageService
+class TranslateService
 {
-    const TRANSLATIONS = [
+    public const TRANSLATIONS = [
         'ru' => [
-            'change_language' => 'Язык изменен на русский',
-            'get_chat_info' => "Ваш ID: `{ID}`\nID чата: `{CHAT_ID}`",
             'get_error_processed' => "🥺 В процессе создания задачи произошла ошибка\nПопробуйте повторить операцию позже",
             'empty_task_message' => 'Не указан текст задачи',
             'complete_task' => '🥳 Задача завершена!',
@@ -18,8 +16,6 @@ class LanguageService
             'result_message' => '<b>Комментарий по задаче</b>:',
         ],
         'en' => [
-            'change_language' => 'Language has been changed to English',
-            'get_chat_info' => "Your ID: `{ID}`\nChat ID: `{CHAT_ID}`",
             'get_error_processed' => "🥺 An error occurred while creating the task\nTry the operation again later",
             'empty_task_message' => 'The task text is not specified',
             'complete_task' => '🥳 Task completed!',
@@ -58,7 +54,7 @@ class LanguageService
     public static function get_lang(string $chat_id)
     {
         $lang = ChatSetting::find($chat_id)?->first()?->lang ?? 'ru';
-        return new LanguageService($lang);
+        return new TranslateService($lang);
     }
 
     public function set_lang($lang): void

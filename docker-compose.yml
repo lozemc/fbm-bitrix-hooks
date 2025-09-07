@@ -10,7 +10,7 @@ services:
     #        USER: www
     volumes:
       - ./app:/var/www
-      - ./logs:/var/log/app
+      - ./logs/app:/var/log/app
     networks:
       - web
 
@@ -27,8 +27,7 @@ services:
     volumes:
       - ./configs/nginx/default.conf:/etc/nginx/conf.d/default.conf
       - ./app:/var/www
-    environment:
-      - PROJECT_HOST=${HOST}
+      - ./logs/nginx:/var/log/nginx
 
 networks:
   web:

@@ -2,13 +2,15 @@
 
 use Dotenv\Dotenv;
 use Illuminate\Database\Capsule\Manager as Capsule;
+use Pecee\Http\Request;
+use Pecee\SimpleRouter\Exceptions\NotFoundHttpException;
 use Pecee\SimpleRouter\SimpleRouter as Route;
 
-# Env
+// Env
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->safeLoad();
 
-# Database
+// Database
 $capsule = new Capsule;
 $capsule->addConnection([
     'driver' => 'pgsql',
@@ -26,6 +28,23 @@ $capsule->addConnection([
 $capsule->setAsGlobal();
 $capsule->bootEloquent();
 
-# Routing
+// Routing
 require_once __DIR__ . '/routes.php';
+
+Route::error(static function (Request $request, \Exception $exception) {
+    if ($exception instanceof NotFoundHttpException) {
+        http_response_code(404);
+        Route::response()->json([
+            'error' => 'Route not found',
+            'path' => $request->getUrl()->getPath(),
+        ]);
+    }
+
+    http_response_code(500);
+    Route::response()->json([
+        'error' => 'Server error',
+        'message' => $exception->getMessage(),
+    ]);
+});
+
 Route::start();

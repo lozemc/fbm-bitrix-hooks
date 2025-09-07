@@ -1,18 +1,15 @@
 FROM php:8.2-fpm-bookworm
 
-ARG UID=1000
-ARG GID=1000
+ARG UID
+ARG GID
 ARG USER=www
 
 ENV USER=${USER}
 ENV UID=${UID}
 ENV GID=${GID}
 
-# Обновление системы
-RUN apt-get update && apt-get upgrade -y
-
 # Установка системных зависимостей
-RUN apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     curl \
     libpng-dev \
@@ -23,13 +20,10 @@ RUN apt-get install -y --no-install-recommends \
     libmemcached-dev \
     libz-dev \
     libpq-dev \
-    libjpeg-dev \
-    libfreetype6-dev \
     libssl-dev \
-    libzip-dev
+    libzip-dev \
+ && rm -rf /var/lib/apt/lists/*
 
-# Очистка кэша
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Установка PHP расширений
 RUN docker-php-ext-install \
@@ -45,8 +39,8 @@ RUN docker-php-ext-install \
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Создание пользователя
-RUN groupadd --gid ${GID} ${USER} && \
-    useradd --uid ${UID} --gid ${GID} --shell /bin/bash --create-home ${USER}
+RUN groupadd --gid ${GID} ${USER} \
+ && useradd --uid ${UID} --gid ${GID} --shell /bin/bash --create-home ${USER}
 
 # Копирование конфигурации PHP
 COPY /configs/php/php.ini /usr/local/etc/php/conf.d/40-custom.ini

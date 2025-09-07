@@ -10,22 +10,24 @@ class TelegramService
 {
     public const API_URL = 'https://api.telegram.org/bot';
 
-    public function sendNewTaskNotify(array $task, array $user): void
+    public function send_new_task_notify(string $message, string $task_url): void
     {
-        [$message, $task_url] = $this->getNotifyParams($task, $user);
-
         try {
-            $this->request_notify_bot(
+            $res = $this->request_notify_bot(
                 $message,
                 [
                     'parse_mode' => 'html',
                     'disable_web_page_preview' => true,
-                    'reply_markup' => json_encode(['inline_keyboard' => [[['text' => 'Перейти', 'url' => $task_url]]]],
-                        256)
+                    'reply_markup' => json_encode(
+                        ['inline_keyboard' => [[['text' => '🌐 Перейти', 'url' => $task_url]]]],
+                        256
+                    )
                 ]
             );
         } catch (\JsonException $e) {
-            LogService::error("Ошибка при отправке оповещения в корп чат!\n" . $e->getMessage(), ['message' => $message]
+            LogService::error(
+                "Ошибка при отправке оповещения в корп чат!\n" . $e->getMessage(),
+                ['message' => $message]
             );
         }
     }
@@ -96,7 +98,7 @@ class TelegramService
             $content = json_decode($response->getBody(), true, 512, JSON_THROW_ON_ERROR);
 
             if ($statusCode !== 200) {
-                LogService::error([
+                LogService::error('Ошибка при отправке данных в Telegram', [
                     'code' => $statusCode,
                     'content' => $content,
                     'params' => $params,
@@ -107,7 +109,7 @@ class TelegramService
         } catch (ClientException $e) {
             $response = $e->getResponse();
             if (!empty($content = $response->getBody()->getContents())) {
-                LogService::error(['content' => $content, 'params' => $params]);
+                LogService::error('Запрос:', ['content' => $content, 'params' => $params]);
                 try {
                     return json_decode($content, true, 512, JSON_THROW_ON_ERROR);
                 } catch (JsonException $e) {
@@ -115,7 +117,7 @@ class TelegramService
                 }
             }
 
-            LogService::error([
+            LogService::error('Ошибка отправки данных в Телеграм', [
                 'response' => $response,
                 'e' => $e->getMessage(),
                 'params' => $params,
@@ -125,30 +127,5 @@ class TelegramService
         }
 
         return ['ok' => false, 'error' => 'Непредвиденная ошибка', 'params' => $params];
-    }
-
-    private function getNotifyParams(array $task, array $user): array
-    {
-        $task_url = 'https://' . env('BX_HOST') . "/company/personal/user/{$user['ID']}/tasks/task/view/{$task['id']}/";
-
-        $full_name = trim($user['NAME'] . ' ' . $user['LAST_NAME']);
-
-        $username = $user[env('BX_TG_USERNAME_FIELD', 'UF_USR_XX')] ?? '';
-        $username = preg_replace('/@/', '', $username);
-
-        $title = trim(mb_substr($task['title'], 0, 30));
-
-        $message = sprintf(
-            "🎉 Создана новая <a href='%s'>задача</a> в CRM\n" .
-            "├ <b>Название:</b> %s\n" .
-            "├ <b>Ответственный:</b> %s\n" .
-            '└ <b>Username:</b> %s',
-            $task_url,
-            $title,
-            !empty($full_name) ? $full_name : '-',
-            !empty($username) ? "@{$username}" : "-\n\n🚨️Обратите внимание, <b>не указан</b> username у пользователя"
-        );
-
-        return [$message, $task_url];
     }
 }

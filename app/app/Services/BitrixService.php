@@ -8,10 +8,19 @@ class BitrixService extends B24
 {
     public function __construct()
     {
-        parent::__construct(env('BX_USER'), env('BX_HOST'), env('BX_TOKEN'));
+        parent::__construct(
+            env('BX_USER', '1'),
+            env('BX_HOST', 'test-host.bitrix24.ru'),
+            env('BX_TOKEN', 'test-token')
+        );
     }
 
-    public function getTask(int $task_id)
+    /**
+     * Метод для получения данных по задаче
+     * @param int $task_id
+     * @return mixed
+     */
+    public function getTask(int $task_id): mixed
     {
         return $this->request('tasks.task.get', [
             'taskId' => $task_id,
@@ -19,6 +28,11 @@ class BitrixService extends B24
         ])['result']['task'] ?? null;
     }
 
+    /**
+     * Метод для получения данных о финальном результате задачи
+     * @param int $task_id
+     * @return array
+     */
     public function getResultTask(int $task_id): array
     {
         $result = $this->request('tasks.task.result.list', [
@@ -41,10 +55,27 @@ class BitrixService extends B24
             }
         }
 
+        if (!empty($files)) {
+            // Если есть хотя бы один документ, то превращаем все файлы в документы (ограничение от телеграм)
+            $docs = count(array_filter($files, static fn($item) => $item['type'] === 'document'));
+
+            if ($docs && count($files) !== $docs) {
+                $files = array_map(static function ($item) {
+                    $item['type'] = 'document';
+                    return $item;
+                }, $files);
+            }
+        }
+
         return [$message, $files];
     }
 
-    public function getAttachedObject($file_id): array
+    /**
+     * Получение файлов из результата задачи
+     * @param $file_id
+     * @return array
+     */
+    private function getAttachedObject($file_id): array
     {
         $response = $this->request('disk.attachedObject.get', [
             'id' => $file_id,
