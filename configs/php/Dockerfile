@@ -38,10 +38,6 @@ RUN docker-php-ext-install \
 # Установка Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Создание пользователя
-RUN groupadd --gid ${GID} ${USER} \
- && useradd --uid ${UID} --gid ${GID} --shell /bin/bash --create-home ${USER}
-
 # Копирование конфигурации PHP
 COPY /configs/php/php.ini /usr/local/etc/php/conf.d/40-custom.ini
 
