@@ -10,7 +10,7 @@ class TelegramService
 {
     public const API_URL = 'https://api.telegram.org/bot';
 
-    public function send_new_task_notify(string $message, string $task_url): void
+    public function send_corp_chat_notify(string $message, string $task_url): void
     {
         try {
             $res = $this->request_notify_bot(

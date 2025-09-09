@@ -53,7 +53,7 @@ class CreateTaskService
     {
         [$message, $task_url] = $this->get_notify_params($bx_task, $bx_user);
 
-        $this->tg->send_new_task_notify($message, $task_url);
+        $this->tg->send_corp_chat_notify($message, $task_url);
     }
 
     private function get_notify_params(array $task, array $user): array
@@ -74,7 +74,7 @@ class CreateTaskService
             "🎉 Создана новая <a href='%s'>задача</a>\n" .
             "├ <b>Название:</b> %s\n" .
             "├ <b>Ответственный:</b> %s\n" .
-            '└ <b>Username:</b> %s',
+            '└ <b>Telegram:</b> %s',
             $task_url,
             $title,
             !empty($full_name) ? $full_name : '-',

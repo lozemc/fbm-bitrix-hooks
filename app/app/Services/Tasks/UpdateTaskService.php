@@ -4,16 +4,19 @@ namespace App\Services\Tasks;
 
 use App\Models\BitrixTask;
 use App\Services\BitrixService;
+use App\Services\LogService;
 use App\Services\TelegramService;
 use App\Services\TranslateService;
 
 class UpdateTaskService
 {
     private BitrixService $bx;
+    private TelegramService $tg;
 
     public function __construct()
     {
         $this->bx = new BitrixService();
+        $this->tg = new TelegramService();
     }
 
     public static function get_task_id($params)
@@ -70,18 +73,74 @@ class UpdateTaskService
         $local_task->save();
     }
 
+    public function check_change_assigned(BitrixTask $local_task, array $bx_task): void
+    {
+        $new_assigned = (int)$bx_task['responsibleId'];
+        $old_assigned = (int)$local_task->assigned_id;
+
+        if (!empty($old_assigned) || $old_assigned !== $new_assigned) {
+            $local_task->assigned_id = $new_assigned;
+            $local_task->save();
+        }
+
+        if ($old_assigned === $new_assigned) {
+            return;
+        }
+
+        // Получаем информацию о новом ответственном
+        $user = $this->bx->getUser($new_assigned)['result'][0] ?? null;;
+
+        if (is_null($user)) {
+            LogService::warning('Не удалось получить информацию о пользователе для оповещения о смене ответственного', [
+                'user_id' => $old_assigned,
+            ]);
+            return;
+        }
+
+        [$message, $task_url] = $this->get_notify_params($bx_task, $user);
+
+        $this->tg->send_corp_chat_notify($message, $task_url);
+    }
+
+    private function get_notify_params(array $task, array $user): array
+    {
+        $task_url = 'https://' . env('BX_HOST') . "/company/personal/user/{$user['ID']}/tasks/task/view/{$task['id']}/";
+
+        $full_name = trim($user['NAME'] . ' ' . $user['LAST_NAME']);
+
+        $username = $user[env('BX_TG_USERNAME_FIELD', 'UF_USR_XX')] ?? '';
+        $username = preg_replace('/@/', '', $username);
+
+        $title = trim(mb_substr($task['title'], 0, 30));
+        if ($title !== $task['title']) {
+            $title .= '...';
+        }
+
+        $message = sprintf(
+            "❗️ Ответственный по <a href='%s'>задаче</a> изменен\n" .
+            "├ <b>Название:</b> %s\n" .
+            "├ <b>Ответственный:</b> %s\n" .
+            '└ <b>Telegram:</b> %s',
+            $task_url,
+            $title,
+            !empty($full_name) ? $full_name : '-',
+            !empty($username) ? "@{$username}" : "-\n\n🚨️Обратите внимание, <b>не указан</b> username у пользователя"
+        );
+
+        return [$message, $task_url];
+    }
+
     private function send_to_telegram(BitrixTask $local_task, string $caption, array $files = []): void
     {
-        $tg_service = new TelegramService;
         if (!empty($files)) {
             if (mb_strlen($caption) > 1024) {
-                $res = $tg_service->request_task_bot([
+                $res = $this->tg->request_task_bot([
                     'chat_id' => $local_task->chat_id,
                     'media' => json_encode($files, JSON_UNESCAPED_UNICODE),
                     'reply_to_message_id' => $local_task->message_id,
                 ]);
 
-                $res2 = $tg_service->request_task_bot([
+                $res2 = $this->tg->request_task_bot([
                     'chat_id' => $local_task->chat_id,
                     'text' => $caption,
                     'reply_to_message_id' => $local_task->message_id,
@@ -90,14 +149,14 @@ class UpdateTaskService
             } else {
                 $files[0]['caption'] = $caption;
 
-                $res = $tg_service->request_task_bot([
+                $res = $this->tg->request_task_bot([
                     'chat_id' => $local_task->chat_id,
                     'media' => json_encode($files, JSON_UNESCAPED_UNICODE),
                     'reply_to_message_id' => $local_task->message_id,
                 ]);
             }
         } else {
-            $res = $tg_service->request_task_bot([
+            $res = $this->tg->request_task_bot([
                 'chat_id' => $local_task->chat_id,
                 'text' => $caption,
                 'reply_to_message_id' => $local_task->message_id,

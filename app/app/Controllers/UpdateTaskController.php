@@ -50,6 +50,9 @@ class UpdateTaskController
 
             // Закрываем задачу в бд
             $ut_service->close_task($local_task);
+        } else {
+            // Проверяем смену ответственного
+            $ut_service->check_change_assigned($local_task, $bx_task);
         }
 
         return true;
