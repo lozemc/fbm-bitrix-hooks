@@ -10,9 +10,22 @@ class BitrixTask extends Model
     protected $primaryKey = 'id';
     public $timestamps = false;
 
-    public function message(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function getMessageAttribute()
     {
-        return $this->hasOne(Message::class, 'message_id', 'message_id');
+        if (!isset($this->attributes['message'])) {
+            $this->attributes['message'] = Message::where('chat_id', $this->chat_id)
+                ->where('message_id', $this->message_id)
+                ->first();
+        }
+        return $this->attributes['message'];
+    }
+
+    public function loadMessage()
+    {
+        $this->message = Message::where('chat_id', $this->chat_id)
+            ->where('message_id', $this->message_id)
+            ->first();
+        return $this;
     }
 
     public function logs(): \Illuminate\Database\Eloquent\Relations\HasMany

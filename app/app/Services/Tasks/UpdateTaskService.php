@@ -34,9 +34,11 @@ class UpdateTaskService
 
     public function get_local_task($task_id): ?BitrixTask
     {
-        return BitrixTask::with(['message', 'logs'])
+        return BitrixTask::with(['logs'])
             ->where('task_id', $task_id)
-            ->where('status', 'pending')->first();
+            ->where('status', 'pending')
+            ->first()
+            ?->loadMessage();
     }
 
     public function get_bx_task($task_id): mixed
@@ -51,7 +53,6 @@ class UpdateTaskService
 
         if ($old_status !== $current_status) {
             $local_task->logs()->create([
-//                'task_id' => $task_id, // TODO check me
                 'new_status' => $current_status,
                 'old_status' => $old_status,
             ]);
